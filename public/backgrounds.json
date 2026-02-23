@@ -1,8 +1,33 @@
 [
 	{ "id": "none", "name": "None", "url": "" },
-	{ "id": "dirt", "name": "Dirt", "url": "public/backgrounds/dirt-tile.webp" },
-	{ "id": "grass", "name": "Grass", "url": "public/backgrounds/grass-tile.webp" },
-	{ "id": "gravel", "name": "Gravel", "url": "public/backgrounds/gravel-tile.webp" },
-	{ "id": "sand", "name": "Sand", "url": "public/backgrounds/sand-tile.webp" },
-	{ "id": "tile", "name": "Tile", "url": "public/backgrounds/tile-tile.webp" }
+	{
+		"id": "dirt",
+		"name": "Dirt",
+		"url": "public/backgrounds/dirt-tile.webp",
+		"backupUrl": "public/backgrounds/dirt-tile.png"
+	},
+	{
+		"id": "grass",
+		"name": "Grass",
+		"url": "public/backgrounds/grass-tile.webp",
+		"backupUrl": "public/backgrounds/grass-tile.png"
+	},
+	{
+		"id": "gravel",
+		"name": "Gravel",
+		"url": "public/backgrounds/gravel-tile.webp",
+		"backupUrl": "public/backgrounds/gravel-tile.png"
+	},
+	{
+		"id": "sand",
+		"name": "Sand",
+		"url": "public/backgrounds/sand-tile.webp",
+		"backupUrl": "public/backgrounds/sand-tile.png"
+	},
+	{
+		"id": "tile",
+		"name": "Tile",
+		"url": "public/backgrounds/tile-tile.webp",
+		"backupUrl": "public/backgrounds/tile-tile.png"
+	}
 ]

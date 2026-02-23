@@ -6,6 +6,8 @@
 	"scripts": {
 		"dev": "portless dog-playground node scripts/static-server.mjs .",
 		"dev:plain": "node scripts/static-server.mjs .",
+		"assets:manifest": "node scripts/generate-asset-manifest.mjs",
+		"assets:check": "node scripts/check-asset-compliance.mjs",
 		"build": "node scripts/build.mjs",
 		"preview": "portless dog-playground.preview node scripts/static-server.mjs dist",
 		"preview:plain": "node scripts/static-server.mjs dist",

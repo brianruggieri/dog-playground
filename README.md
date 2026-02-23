@@ -50,6 +50,15 @@ Add or register new entries with frame assets and movement settings in `src/cata
 
 Add or register new entries with image + launch/physics profiles in `src/catalog/toys.js`.
 
+## Asset Workflow
+
+- Default source policy: assets are AI-generated with ChatGPT image generation tools.
+- When adding/updating images in `public/backgrounds`, `public/dogs`, or `public/toys`:
+	1. Add/update WebP primary files and PNG backup files with matching filenames.
+	2. Run `npm run assets:manifest`.
+	3. Run `npm run assets:check`.
+- CI enforces this via the `Asset Compliance` workflow.
+
 ## Future Expansion Notes
 
 - AI-driven dog generation can write new dog definitions + generated sprite references.
@@ -70,4 +79,7 @@ Add or register new entries with image + launch/physics profiles in `src/catalog
 ## Licensing
 
 - Code license: `LICENSE` (MIT).
-- AI-generated visual asset provenance and usage notes: `ASSET_PROVENANCE.md`.
+- Visual asset license: `LICENSE-ASSETS` (CC BY 4.0).
+- AI-generated visual asset provenance and per-file manifest:
+	- `ASSET_PROVENANCE.md`
+	- `ASSET_MANIFEST.json`

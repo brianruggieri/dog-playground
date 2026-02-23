@@ -1,7 +1,12 @@
 import { DOG_SPRITE_TARGET_HEIGHT, GRID_PIXEL_SIZE } from "./constants.js";
 import { getDog, getDogOptions } from "./catalog/dogs.js";
 import { getToy, getToyOptions } from "./catalog/toys.js";
-import { resolveAssetUrl } from "./assets.js";
+import {
+	buildCssImageWithFallback,
+	resolveAssetUrl,
+	resolveAssetWithBackup,
+	setElementBackgroundImageWithFallback,
+} from "./assets.js";
 import {
 	calculateToyDiameterPx,
 	clamp,
@@ -13,11 +18,36 @@ import { createInitialDogState, stepDogState } from "./engine/dogBehavior.js";
 
 const fallbackBackgrounds = [
 	{ id: "none", name: "None", url: "" },
-	{ id: "dirt", name: "Dirt", url: resolveAssetUrl("public/backgrounds/dirt-tile.webp") },
-	{ id: "grass", name: "Grass", url: resolveAssetUrl("public/backgrounds/grass-tile.webp") },
-	{ id: "gravel", name: "Gravel", url: resolveAssetUrl("public/backgrounds/gravel-tile.webp") },
-	{ id: "sand", name: "Sand", url: resolveAssetUrl("public/backgrounds/sand-tile.webp") },
-	{ id: "tile", name: "Tile", url: resolveAssetUrl("public/backgrounds/tile-tile.webp") },
+	{
+		id: "dirt",
+		name: "Dirt",
+		url: resolveAssetUrl("public/backgrounds/dirt-tile.webp"),
+		backupUrl: resolveAssetUrl("public/backgrounds/dirt-tile.png"),
+	},
+	{
+		id: "grass",
+		name: "Grass",
+		url: resolveAssetUrl("public/backgrounds/grass-tile.webp"),
+		backupUrl: resolveAssetUrl("public/backgrounds/grass-tile.png"),
+	},
+	{
+		id: "gravel",
+		name: "Gravel",
+		url: resolveAssetUrl("public/backgrounds/gravel-tile.webp"),
+		backupUrl: resolveAssetUrl("public/backgrounds/gravel-tile.png"),
+	},
+	{
+		id: "sand",
+		name: "Sand",
+		url: resolveAssetUrl("public/backgrounds/sand-tile.webp"),
+		backupUrl: resolveAssetUrl("public/backgrounds/sand-tile.png"),
+	},
+	{
+		id: "tile",
+		name: "Tile",
+		url: resolveAssetUrl("public/backgrounds/tile-tile.webp"),
+		backupUrl: resolveAssetUrl("public/backgrounds/tile-tile.png"),
+	},
 ];
 
 const el = {
@@ -194,10 +224,17 @@ async function loadBackgrounds() {
 		if (!Array.isArray(parsed)) {
 			return fallbackBackgrounds;
 		}
-		return parsed.map((entry) => ({
-			...entry,
-			url: resolveAssetUrl(entry.url),
-		}));
+		return parsed.map((entry) => {
+			const { primaryUrl, backupUrl } = resolveAssetWithBackup(
+				entry.url,
+				entry.backupUrl || "",
+			);
+			return {
+				...entry,
+				url: primaryUrl,
+				backupUrl,
+			};
+		});
 	} catch {
 		return fallbackBackgrounds;
 	}
@@ -211,13 +248,15 @@ function getActiveBackground() {
 	);
 }
 
-async function sampleDotColor(textureUrl) {
+async function sampleDotColor(textureUrl, backupTextureUrl = "") {
 	if (!textureUrl) {
 		return "rgba(148, 163, 184, 0.9)";
 	}
 	return new Promise((resolve) => {
 		const image = new Image();
-		image.src = textureUrl;
+		let attemptedBackup = false;
+		const fallbackUrl = backupTextureUrl || "";
+
 		image.onload = () => {
 			const canvas = document.createElement("canvas");
 			canvas.width = 32;
@@ -239,10 +278,18 @@ async function sampleDotColor(textureUrl) {
 				total += luminance;
 				count += 1;
 			}
-			const average = total / Math.max(1, count);
-			resolve(average > 0.6 ? "rgba(30, 41, 59, 0.7)" : "rgba(241, 245, 249, 0.8)");
-		};
-		image.onerror = () => resolve("rgba(148, 163, 184, 0.9)");
+				const average = total / Math.max(1, count);
+				resolve(average > 0.6 ? "rgba(30, 41, 59, 0.7)" : "rgba(241, 245, 249, 0.8)");
+			};
+			image.onerror = () => {
+				if (!attemptedBackup && fallbackUrl && fallbackUrl !== textureUrl) {
+					attemptedBackup = true;
+					image.src = fallbackUrl;
+					return;
+				}
+				resolve("rgba(148, 163, 184, 0.9)");
+			};
+			image.src = textureUrl;
 	});
 }
 
@@ -254,7 +301,8 @@ function applyBackgroundStyles(background) {
 		return;
 	}
 
-	el.world.style.backgroundImage = `radial-gradient(${state.dotColor} 1.5px, transparent 1.5px), linear-gradient(rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.45)), url(${background.url})`;
+	const textureLayer = buildCssImageWithFallback(background.url, background.backupUrl);
+	el.world.style.backgroundImage = `radial-gradient(${state.dotColor} 1.5px, transparent 1.5px), linear-gradient(rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.45)), ${textureLayer}`;
 	el.world.style.backgroundSize = "24px 24px, 100% 100%, 256px 256px";
 	el.world.style.backgroundRepeat = "repeat, no-repeat, repeat";
 }
@@ -262,7 +310,7 @@ function applyBackgroundStyles(background) {
 async function refreshBackground() {
 	const token = ++backgroundRequestToken;
 	const activeBackground = getActiveBackground();
-	state.dotColor = await sampleDotColor(activeBackground.url);
+	state.dotColor = await sampleDotColor(activeBackground.url, activeBackground.backupUrl);
 	if (token !== backgroundRequestToken) {
 		return;
 	}
@@ -293,7 +341,11 @@ function updateDragArtifacts() {
 	el.toyPreview.style.top = `${canvasPoint.y - diameter / 2}px`;
 	el.toyPreview.style.width = `${diameter}px`;
 	el.toyPreview.style.height = `${diameter}px`;
-	el.toyPreview.style.backgroundImage = `url('${toy.assetUrl}')`;
+	setElementBackgroundImageWithFallback(
+		el.toyPreview,
+		toy.assetUrl,
+		toy.backupAssetUrl,
+	);
 	el.toyPreview.classList.add("is-active");
 
 	el.dragLine.setAttribute("x1", `${state.dragStartClient.x - rect.left}`);
@@ -313,7 +365,11 @@ function updateToyElementPosition(toy) {
 function spawnToy(launch, toyDefinition) {
 	const toyElement = document.createElement("div");
 	toyElement.className = "toy-instance";
-	toyElement.style.backgroundImage = `url('${toyDefinition.assetUrl}')`;
+	setElementBackgroundImageWithFallback(
+		toyElement,
+		toyDefinition.assetUrl,
+		toyDefinition.backupAssetUrl,
+	);
 
 	const toyState = {
 		id: ++state.toyCounter,
@@ -487,13 +543,31 @@ function stepToys(dtSeconds) {
 function renderDog() {
 	const dogDefinition = getDog(state.selectedDogId);
 	const spriteHeight = DOG_SPRITE_TARGET_HEIGHT * (dogDefinition.visualScale || 1);
+	const primaryFrame =
+		dogDefinition.frames[state.dog.frameIndex] || dogDefinition.frames[0] || "";
+	const backupFrame =
+		dogDefinition.backupFrames?.[state.dog.frameIndex] ||
+		dogDefinition.backupFrames?.[0] ||
+		"";
 
 	el.dogSprite.style.left = `${state.dog.x - spriteHeight / 2}px`;
 	el.dogSprite.style.top = `${state.dog.y - spriteHeight / 2}px`;
 	el.dogSprite.style.width = `${spriteHeight}px`;
 	el.dogSprite.style.height = `${spriteHeight}px`;
 	el.dogSprite.style.transform = `scaleX(${state.dog.flip ? -1 : 1})`;
-	el.dogImage.src = dogDefinition.frames[state.dog.frameIndex] || dogDefinition.frames[0];
+	if (el.dogImage.dataset.primarySrc !== primaryFrame || el.dogImage.dataset.backupSrc !== backupFrame) {
+		el.dogImage.dataset.primarySrc = primaryFrame;
+		el.dogImage.dataset.backupSrc = backupFrame;
+		el.dogImage.onerror = null;
+		if (backupFrame && backupFrame !== primaryFrame) {
+			el.dogImage.onerror = () => {
+				if (el.dogImage.src !== backupFrame) {
+					el.dogImage.src = backupFrame;
+				}
+			};
+		}
+		el.dogImage.src = primaryFrame;
+	}
 }
 
 function stepDog(dtMs) {

@@ -7,6 +7,7 @@ const defaultToys = [
 		id: "ball",
 		name: "Ball",
 		assetUrl: resolveAssetUrl("public/toys/ball.webp"),
+		backupAssetUrl: resolveAssetUrl("public/toys/ball.png"),
 		diameterMultiplier: 1,
 		launch: {
 			minDragPx: 8,
@@ -24,6 +25,7 @@ const defaultToys = [
 		id: "frisbee",
 		name: "Frisbee",
 		assetUrl: resolveAssetUrl("public/toys/frisbee.webp"),
+		backupAssetUrl: resolveAssetUrl("public/toys/frisbee.png"),
 		diameterMultiplier: 2,
 		launch: {
 			minDragPx: 8,
@@ -41,6 +43,7 @@ const defaultToys = [
 		id: "bone",
 		name: "Bone",
 		assetUrl: resolveAssetUrl("public/toys/bone.webp"),
+		backupAssetUrl: resolveAssetUrl("public/toys/bone.png"),
 		diameterMultiplier: 1,
 		launch: {
 			minDragPx: 8,

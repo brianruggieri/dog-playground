@@ -9,13 +9,21 @@ const sharedFrames = [
 	resolveAssetUrl("public/dogs/dog-04.webp"),
 ];
 
+const sharedBackupFrames = [
+	resolveAssetUrl("public/dogs/dog-01.png"),
+	resolveAssetUrl("public/dogs/dog-02.png"),
+	resolveAssetUrl("public/dogs/dog-03.png"),
+	resolveAssetUrl("public/dogs/dog-04.png"),
+];
+
 const defaultDogs = [
 	{
 		id: "farm-collie",
 		name: "Farm Collie",
-		description: "Balanced wander/chase behavior.",
-		frames: sharedFrames,
-		frameAngles: [60, 90, 0, 270],
+			description: "Balanced wander/chase behavior.",
+			frames: sharedFrames,
+			backupFrames: sharedBackupFrames,
+			frameAngles: [60, 90, 0, 270],
 		upwardFrameIndex: 3,
 		visualScale: 1,
 		movement: {
@@ -29,9 +37,10 @@ const defaultDogs = [
 	{
 		id: "quick-collie",
 		name: "Quick Collie",
-		description: "Moves faster when chasing throws.",
-		frames: sharedFrames,
-		frameAngles: [60, 90, 0, 270],
+			description: "Moves faster when chasing throws.",
+			frames: sharedFrames,
+			backupFrames: sharedBackupFrames,
+			frameAngles: [60, 90, 0, 270],
 		upwardFrameIndex: 3,
 		visualScale: 1,
 		movement: {
@@ -45,9 +54,10 @@ const defaultDogs = [
 	{
 		id: "steady-shepherd",
 		name: "Steady Shepherd",
-		description: "Calmer wander profile.",
-		frames: sharedFrames,
-		frameAngles: [60, 90, 0, 270],
+			description: "Calmer wander profile.",
+			frames: sharedFrames,
+			backupFrames: sharedBackupFrames,
+			frameAngles: [60, 90, 0, 270],
 		upwardFrameIndex: 3,
 		visualScale: 1,
 		movement: {
