@@ -7,7 +7,7 @@ test("registerDog adds an extendable dog definition", () => {
 	registerDog({
 		id: "test-pointer",
 		name: "Test Pointer",
-		frames: ["/public/dogs/dog-01.png"],
+		frames: ["/public/dogs/dog-01.webp"],
 		movement: {
 			baseSpeed: 0.2,
 		},
@@ -41,7 +41,7 @@ test("registerToy supports adding a new toy profile", () => {
 	registerToy({
 		id: "rope",
 		name: "Rope",
-		assetUrl: "/public/toys/bone.png",
+		assetUrl: "/public/toys/bone.webp",
 		launch: {
 			maxScreenSpeed: 900,
 		},

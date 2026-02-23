@@ -6,7 +6,7 @@ function createDogDefinition(overrides = {}) {
 	return {
 		id: "test-dog",
 		name: "Test Dog",
-		frames: ["/public/dogs/dog-01.png", "/public/dogs/dog-02.png", "/public/dogs/dog-03.png", "/public/dogs/dog-04.png"],
+		frames: ["/public/dogs/dog-01.webp", "/public/dogs/dog-02.webp", "/public/dogs/dog-03.webp", "/public/dogs/dog-04.webp"],
 		frameAngles: [60, 90, 0, 270],
 		upwardFrameIndex: 3,
 		movement: {

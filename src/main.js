@@ -13,11 +13,11 @@ import { createInitialDogState, stepDogState } from "./engine/dogBehavior.js";
 
 const fallbackBackgrounds = [
 	{ id: "none", name: "None", url: "" },
-	{ id: "dirt", name: "Dirt", url: resolveAssetUrl("public/backgrounds/dirt-tile.png") },
-	{ id: "grass", name: "Grass", url: resolveAssetUrl("public/backgrounds/grass-tile.png") },
-	{ id: "gravel", name: "Gravel", url: resolveAssetUrl("public/backgrounds/gravel-tile.png") },
-	{ id: "sand", name: "Sand", url: resolveAssetUrl("public/backgrounds/sand-tile.png") },
-	{ id: "tile", name: "Tile", url: resolveAssetUrl("public/backgrounds/tile-tile.png") },
+	{ id: "dirt", name: "Dirt", url: resolveAssetUrl("public/backgrounds/dirt-tile.webp") },
+	{ id: "grass", name: "Grass", url: resolveAssetUrl("public/backgrounds/grass-tile.webp") },
+	{ id: "gravel", name: "Gravel", url: resolveAssetUrl("public/backgrounds/gravel-tile.webp") },
+	{ id: "sand", name: "Sand", url: resolveAssetUrl("public/backgrounds/sand-tile.webp") },
+	{ id: "tile", name: "Tile", url: resolveAssetUrl("public/backgrounds/tile-tile.webp") },
 ];
 
 const el = {
