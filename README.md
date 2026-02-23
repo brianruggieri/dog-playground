@@ -66,3 +66,8 @@ Add or register new entries with image + launch/physics profiles in `src/catalog
 - This repo uses Semantic Versioning with tags (`vX.Y.Z`).
 - Use the `Release Version` workflow to bump `patch`, `minor`, or `major`.
 - Full guide: `VERSIONING.md`.
+
+## Licensing
+
+- Code license: `LICENSE` (MIT).
+- AI-generated visual asset provenance and usage notes: `ASSET_PROVENANCE.md`.
