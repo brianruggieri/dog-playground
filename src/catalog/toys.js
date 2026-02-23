@@ -1,10 +1,12 @@
+import { resolveAssetUrl } from "../assets.js";
+
 const toyRegistry = new Map();
 
 const defaultToys = [
 	{
 		id: "ball",
 		name: "Ball",
-		assetUrl: "/public/toys/ball.png",
+		assetUrl: resolveAssetUrl("public/toys/ball.png"),
 		diameterMultiplier: 1,
 		launch: {
 			minDragPx: 8,
@@ -21,7 +23,7 @@ const defaultToys = [
 	{
 		id: "frisbee",
 		name: "Frisbee",
-		assetUrl: "/public/toys/frisbee.png",
+		assetUrl: resolveAssetUrl("public/toys/frisbee.png"),
 		diameterMultiplier: 2,
 		launch: {
 			minDragPx: 8,
@@ -38,7 +40,7 @@ const defaultToys = [
 	{
 		id: "bone",
 		name: "Bone",
-		assetUrl: "/public/toys/bone.png",
+		assetUrl: resolveAssetUrl("public/toys/bone.png"),
 		diameterMultiplier: 1,
 		launch: {
 			minDragPx: 8,

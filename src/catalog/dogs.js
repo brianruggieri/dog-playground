@@ -1,10 +1,12 @@
+import { resolveAssetUrl } from "../assets.js";
+
 const dogRegistry = new Map();
 
 const sharedFrames = [
-	"/public/dogs/dog-01.png",
-	"/public/dogs/dog-02.png",
-	"/public/dogs/dog-03.png",
-	"/public/dogs/dog-04.png",
+	resolveAssetUrl("public/dogs/dog-01.png"),
+	resolveAssetUrl("public/dogs/dog-02.png"),
+	resolveAssetUrl("public/dogs/dog-03.png"),
+	resolveAssetUrl("public/dogs/dog-04.png"),
 ];
 
 const defaultDogs = [

@@ -1,6 +1,7 @@
 import { DOG_SPRITE_TARGET_HEIGHT, GRID_PIXEL_SIZE } from "./constants.js";
 import { getDog, getDogOptions } from "./catalog/dogs.js";
 import { getToy, getToyOptions } from "./catalog/toys.js";
+import { resolveAssetUrl } from "./assets.js";
 import {
 	calculateToyDiameterPx,
 	clamp,
@@ -12,11 +13,11 @@ import { createInitialDogState, stepDogState } from "./engine/dogBehavior.js";
 
 const fallbackBackgrounds = [
 	{ id: "none", name: "None", url: "" },
-	{ id: "dirt", name: "Dirt", url: "/public/backgrounds/dirt-tile.png" },
-	{ id: "grass", name: "Grass", url: "/public/backgrounds/grass-tile.png" },
-	{ id: "gravel", name: "Gravel", url: "/public/backgrounds/gravel-tile.png" },
-	{ id: "sand", name: "Sand", url: "/public/backgrounds/sand-tile.png" },
-	{ id: "tile", name: "Tile", url: "/public/backgrounds/tile-tile.png" },
+	{ id: "dirt", name: "Dirt", url: resolveAssetUrl("public/backgrounds/dirt-tile.png") },
+	{ id: "grass", name: "Grass", url: resolveAssetUrl("public/backgrounds/grass-tile.png") },
+	{ id: "gravel", name: "Gravel", url: resolveAssetUrl("public/backgrounds/gravel-tile.png") },
+	{ id: "sand", name: "Sand", url: resolveAssetUrl("public/backgrounds/sand-tile.png") },
+	{ id: "tile", name: "Tile", url: resolveAssetUrl("public/backgrounds/tile-tile.png") },
 ];
 
 const el = {
@@ -56,7 +57,9 @@ const state = {
 	isPanning: false,
 	isSpacePressed: false,
 	panDragStart: null,
+	panPointerId: null,
 	isDraggingThrow: false,
+	throwPointerId: null,
 	dragStartClient: null,
 	dragCurrentClient: null,
 	toys: [],
@@ -66,6 +69,7 @@ const state = {
 
 let backgroundRequestToken = 0;
 let frameLastTime = performance.now();
+const activePointers = new Map();
 
 el.world.style.width = `${GRID_PIXEL_SIZE}px`;
 el.world.style.height = `${GRID_PIXEL_SIZE}px`;
@@ -182,7 +186,7 @@ function setThrowMode(nextMode) {
 
 async function loadBackgrounds() {
 	try {
-		const response = await fetch("/public/backgrounds.json");
+		const response = await fetch(resolveAssetUrl("public/backgrounds.json"));
 		if (!response.ok) {
 			return fallbackBackgrounds;
 		}
@@ -190,7 +194,10 @@ async function loadBackgrounds() {
 		if (!Array.isArray(parsed)) {
 			return fallbackBackgrounds;
 		}
-		return parsed;
+		return parsed.map((entry) => ({
+			...entry,
+			url: resolveAssetUrl(entry.url),
+		}));
 	} catch {
 		return fallbackBackgrounds;
 	}
@@ -356,6 +363,7 @@ function endToyDrag(shouldLaunch) {
 	const start = state.dragStartClient;
 	const end = state.dragCurrentClient;
 	state.isDraggingThrow = false;
+	state.throwPointerId = null;
 	state.dragStartClient = null;
 	state.dragCurrentClient = null;
 	hideDragArtifacts();
@@ -364,19 +372,24 @@ function endToyDrag(shouldLaunch) {
 	}
 }
 
-function beginPan(clientPoint) {
-	state.isPanning = true;
+function setPanAnchor(clientPoint) {
 	state.panDragStart = {
 		clientX: clientPoint.x,
 		clientY: clientPoint.y,
 		panX: state.pan.x,
 		panY: state.pan.y,
 	};
+}
+
+function beginPan(clientPoint) {
+	state.isPanning = true;
+	setPanAnchor(clientPoint);
 	el.viewport.classList.add("is-panning");
 }
 
 function stopPan() {
 	state.isPanning = false;
+	state.panPointerId = null;
 	state.panDragStart = null;
 	el.viewport.classList.remove("is-panning");
 }
@@ -393,6 +406,56 @@ function updatePan(clientPoint) {
 		state.zoom,
 	);
 	renderTransform();
+}
+
+function isTouchLikePointer(pointerType) {
+	return pointerType === "touch" || pointerType === "pen";
+}
+
+function countActiveTouchPointers() {
+	let count = 0;
+	for (const pointer of activePointers.values()) {
+		if (isTouchLikePointer(pointer.type)) {
+			count += 1;
+		}
+	}
+	return count;
+}
+
+function getTouchCentroid() {
+	let totalX = 0;
+	let totalY = 0;
+	let count = 0;
+	for (const pointer of activePointers.values()) {
+		if (!isTouchLikePointer(pointer.type)) {
+			continue;
+		}
+		totalX += pointer.x;
+		totalY += pointer.y;
+		count += 1;
+	}
+	if (!count) {
+		return null;
+	}
+	return { x: totalX / count, y: totalY / count };
+}
+
+function capturePointer(pointerId) {
+	try {
+		el.viewport.setPointerCapture(pointerId);
+	} catch {
+		// no-op for unsupported pointer capture paths
+	}
+}
+
+function releasePointer(pointerId) {
+	try {
+		if (el.viewport.hasPointerCapture(pointerId)) {
+			el.viewport.releasePointerCapture(pointerId);
+		}
+	} catch {
+		// no-op for unsupported pointer capture paths
+	}
 }
 
 function stepToys(dtSeconds) {
@@ -458,86 +521,129 @@ function animationFrame(now) {
 	requestAnimationFrame(animationFrame);
 }
 
-function handleMouseDown(event) {
+function handlePointerDown(event) {
+	const point = { x: event.clientX, y: event.clientY };
+	activePointers.set(event.pointerId, {
+		x: point.x,
+		y: point.y,
+		type: event.pointerType,
+	});
+
 	el.viewport.focus();
-	if (state.isSpacePressed || event.button === 1) {
-		beginPan({ x: event.clientX, y: event.clientY });
-		event.preventDefault();
-		return;
-	}
 
-	if (event.button !== 0 || !state.throwMode) {
-		return;
-	}
-
-	beginToyDrag({ x: event.clientX, y: event.clientY });
-	event.preventDefault();
-}
-
-function handleMouseMove(event) {
-	if (state.isPanning) {
-		updatePan({ x: event.clientX, y: event.clientY });
-	}
-	if (state.isDraggingThrow) {
-		state.dragCurrentClient = { x: event.clientX, y: event.clientY };
-		updateDragArtifacts();
-	}
-}
-
-function handleMouseUp(event) {
-	if (state.isPanning) {
-		stopPan();
-	}
-	if (state.isDraggingThrow && event.button === 0) {
-		state.dragCurrentClient = { x: event.clientX, y: event.clientY };
-		endToyDrag(true);
-	}
-}
-
-function handleTouchStart(event) {
-	if (event.touches.length > 1 || state.isSpacePressed) {
-		const touch = event.touches[0];
-		beginPan({ x: touch.clientX, y: touch.clientY });
-		event.preventDefault();
-		return;
-	}
-	if (!state.throwMode) {
-		return;
-	}
-	const touch = event.touches[0];
-	beginToyDrag({ x: touch.clientX, y: touch.clientY });
-	event.preventDefault();
-}
-
-function handleTouchMove(event) {
-	if (state.isPanning && event.touches.length > 0) {
-		const touch = event.touches[0];
-		updatePan({ x: touch.clientX, y: touch.clientY });
-		event.preventDefault();
-		return;
-	}
-	if (state.isDraggingThrow && event.touches.length === 1) {
-		const touch = event.touches[0];
-		state.dragCurrentClient = { x: touch.clientX, y: touch.clientY };
-		updateDragArtifacts();
-		event.preventDefault();
-	}
-}
-
-function handleTouchEnd(event) {
-	if (state.isDraggingThrow) {
-		const changedTouch = event.changedTouches[0];
-		if (changedTouch) {
-			state.dragCurrentClient = {
-				x: changedTouch.clientX,
-				y: changedTouch.clientY,
-			};
+	if (!isTouchLikePointer(event.pointerType)) {
+		if (state.isSpacePressed || event.button === 1) {
+			state.panPointerId = event.pointerId;
+			beginPan(point);
+			capturePointer(event.pointerId);
+			event.preventDefault();
+			return;
 		}
-		endToyDrag(true);
+
+		if (event.button === 0 && state.throwMode) {
+			state.throwPointerId = event.pointerId;
+			beginToyDrag(point);
+			capturePointer(event.pointerId);
+			event.preventDefault();
+		}
+		return;
 	}
-	if (event.touches.length === 0) {
+
+	const touchCount = countActiveTouchPointers();
+	if (touchCount > 1 || state.isSpacePressed) {
+		if (state.isDraggingThrow) {
+			endToyDrag(false);
+		}
+		const centroid = getTouchCentroid() || point;
+		if (!state.isPanning) {
+			beginPan(centroid);
+		} else {
+			setPanAnchor(centroid);
+		}
+		state.panPointerId = event.pointerId;
+		capturePointer(event.pointerId);
+		event.preventDefault();
+		return;
+	}
+
+	if (state.throwMode) {
+		state.throwPointerId = event.pointerId;
+		beginToyDrag(point);
+		capturePointer(event.pointerId);
+		event.preventDefault();
+	}
+}
+
+function handlePointerMove(event) {
+	const point = { x: event.clientX, y: event.clientY };
+	const active = activePointers.get(event.pointerId);
+	if (active) {
+		active.x = point.x;
+		active.y = point.y;
+	}
+
+	if (state.isPanning) {
+		if (isTouchLikePointer(event.pointerType)) {
+			const centroid = getTouchCentroid();
+			if (centroid) {
+				updatePan(centroid);
+			}
+			event.preventDefault();
+		} else if (event.pointerId === state.panPointerId) {
+			updatePan(point);
+		}
+	}
+
+	if (state.isDraggingThrow && event.pointerId === state.throwPointerId) {
+		state.dragCurrentClient = point;
+		updateDragArtifacts();
+		if (isTouchLikePointer(event.pointerType)) {
+			event.preventDefault();
+		}
+	}
+}
+
+function finalizePointer(event, shouldLaunch) {
+	const point = { x: event.clientX, y: event.clientY };
+	const isTouchLike = isTouchLikePointer(event.pointerType);
+
+	if (state.isDraggingThrow && event.pointerId === state.throwPointerId) {
+		state.dragCurrentClient = point;
+		endToyDrag(shouldLaunch);
+	}
+
+	activePointers.delete(event.pointerId);
+	releasePointer(event.pointerId);
+
+	if (!state.isPanning) {
+		return;
+	}
+
+	if (!isTouchLike) {
+		if (event.pointerId === state.panPointerId) {
+			stopPan();
+		}
+		return;
+	}
+
+	const touchCount = countActiveTouchPointers();
+	if (touchCount === 0) {
 		stopPan();
+		return;
 	}
+
+	const centroid = getTouchCentroid();
+	if (centroid) {
+		setPanAnchor(centroid);
+	}
+}
+
+function handlePointerUp(event) {
+	finalizePointer(event, true);
+}
+
+function handlePointerCancel(event) {
+	finalizePointer(event, false);
 }
 
 function handleWheel(event) {
@@ -625,19 +731,16 @@ function wireControls() {
 
 function wireViewportEvents() {
 	el.viewport.addEventListener("wheel", handleWheel, { passive: false });
-	el.viewport.addEventListener("mousedown", handleMouseDown);
-	el.viewport.addEventListener("touchstart", handleTouchStart, { passive: false });
-	el.viewport.addEventListener("touchmove", handleTouchMove, { passive: false });
-	el.viewport.addEventListener("touchend", handleTouchEnd, { passive: false });
-	el.viewport.addEventListener("touchcancel", handleTouchEnd, { passive: false });
+	el.viewport.addEventListener("pointerdown", handlePointerDown);
 	el.viewport.addEventListener("contextmenu", (event) => {
 		if (state.throwMode || state.isPanning) {
 			event.preventDefault();
 		}
 	});
 
-	window.addEventListener("mousemove", handleMouseMove);
-	window.addEventListener("mouseup", handleMouseUp);
+	window.addEventListener("pointermove", handlePointerMove);
+	window.addEventListener("pointerup", handlePointerUp);
+	window.addEventListener("pointercancel", handlePointerCancel);
 	window.addEventListener("keydown", handleKeyDown);
 	window.addEventListener("keyup", handleKeyUp);
 	window.addEventListener("resize", handleResize);
