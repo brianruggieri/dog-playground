@@ -30,6 +30,8 @@ The code is organized so dogs and toys are easy to extend:
 source ~/.nvm/nvm.sh && nvm use
 npm test
 npm run dev
+# fallback when portless is unavailable
+npm run dev:plain
 ```
 
 ## Controls
@@ -53,3 +55,14 @@ Add or register new entries with image + launch/physics profiles in `src/catalog
 - AI-driven dog generation can write new dog definitions + generated sprite references.
 - New toy types can be added without changing core physics loop.
 - Interactions like petting/commands can attach to the dog behavior module without changing rendering or toy physics.
+
+## Deployment (GitHub Pages)
+
+- `Deploy GitHub Pages` workflow publishes `dist/` on pushes to `main`.
+- In repo settings, set **Pages -> Source** to **GitHub Actions**.
+
+## Versioning
+
+- This repo uses Semantic Versioning with tags (`vX.Y.Z`).
+- Use the `Release Version` workflow to bump `patch`, `minor`, or `major`.
+- Full guide: `VERSIONING.md`.
