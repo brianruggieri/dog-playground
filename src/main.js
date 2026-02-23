@@ -806,6 +806,9 @@ function wireControls() {
 function wireViewportEvents() {
 	el.viewport.addEventListener("wheel", handleWheel, { passive: false });
 	el.viewport.addEventListener("pointerdown", handlePointerDown);
+	el.viewport.addEventListener("pointermove", handlePointerMove);
+	el.viewport.addEventListener("pointerup", handlePointerUp);
+	el.viewport.addEventListener("pointercancel", handlePointerCancel);
 	el.viewport.addEventListener("contextmenu", (event) => {
 		if (state.throwMode || state.isPanning) {
 			event.preventDefault();
