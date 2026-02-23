@@ -1,0 +1,12 @@
+{
+	"name": "dog-playground",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "portless dog-playground node scripts/static-server.mjs .",
+		"build": "node scripts/build.mjs",
+		"preview": "portless dog-playground.preview node scripts/static-server.mjs dist",
+		"test": "node --test \"tests/**/*.test.mjs\""
+	}
+}

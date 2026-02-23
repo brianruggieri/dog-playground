@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Dog Playground</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link href="https://fonts.googleapis.com/css2?family=Changa:wght@400;600;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
+		<link rel="stylesheet" href="/src/styles.css" />
+	</head>
+	<body>
+		<div id="app-shell">
+			<aside id="control-panel" class="control-panel">
+				<h1>Dog Yard</h1>
+				<p class="subtitle">Wander + throw loop</p>
+				<label>
+					<span>Texture</span>
+					<select id="texture-select"></select>
+				</label>
+				<label>
+					<span>Dog</span>
+					<select id="dog-select"></select>
+				</label>
+				<label>
+					<span>Toy</span>
+					<select id="toy-select"></select>
+				</label>
+				<div class="button-row">
+					<button id="toggle-throw" type="button">Throw Mode: On</button>
+					<button id="center-view" type="button">Center View</button>
+				</div>
+				<p class="hint">Drag to throw. Space/middle drag pans. Ctrl/Cmd+wheel zooms.</p>
+			</aside>
+
+			<main id="viewport" tabindex="0" aria-label="Dog playground viewport">
+				<div id="world" class="world">
+					<div class="grid-tape" aria-hidden="true">
+						<span class="grid-tape__edge grid-tape__edge--top"></span>
+						<span class="grid-tape__edge grid-tape__edge--right"></span>
+						<span class="grid-tape__edge grid-tape__edge--bottom"></span>
+						<span class="grid-tape__edge grid-tape__edge--left"></span>
+					</div>
+					<div id="dog-sprite" class="dog-sprite" aria-hidden="true">
+						<img id="dog-image" alt="Wandering dog" />
+					</div>
+					<div id="toy-preview" class="toy-preview"></div>
+				</div>
+
+				<svg id="drag-overlay" class="drag-overlay" aria-hidden="true">
+					<defs>
+						<linearGradient id="drag-gradient" x1="0" x2="1">
+							<stop offset="0%" stop-color="#f97316" stop-opacity="0.95" />
+							<stop offset="100%" stop-color="#fb923c" stop-opacity="0.6" />
+						</linearGradient>
+					</defs>
+					<line id="drag-line" stroke="url(#drag-gradient)" stroke-width="3" stroke-linecap="round"></line>
+				</svg>
+
+				<div class="viewport-hud">
+					<button id="zoom-out" type="button" aria-label="Zoom out">-</button>
+					<button id="zoom-reset" type="button" aria-label="Reset zoom"><span id="zoom-label">100%</span></button>
+					<button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+				</div>
+			</main>
+		</div>
+
+		<script type="module" src="/src/main.js"></script>
+	</body>
+</html>
