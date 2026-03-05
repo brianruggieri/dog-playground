@@ -5,6 +5,10 @@
 	--ink-muted: #5f6b7a;
 	--accent: #f97316;
 	--accent-soft: #fed7aa;
+	--touch-target: 44px;
+	--mobile-bottom-gap: calc(env(safe-area-inset-bottom, 0px) + 12px);
+	--mobile-side-gap: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+	--mobile-panel-peek: 58px;
 }
 
 * {
@@ -31,7 +35,7 @@ body {
 	display: grid;
 	grid-template-columns: 244px minmax(0, 1fr);
 	gap: 12px;
-	height: 100vh;
+	height: 100dvh;
 	padding: 12px;
 }
 
@@ -47,10 +51,14 @@ body {
 	gap: 9px;
 }
 
+.panel-mobile-head {
+	display: none;
+}
+
 .control-panel h1 {
 	margin: 0;
 	font-family: "Changa", sans-serif;
-	font-size: 1.1rem;
+	font-size: clamp(1rem, 2.4vw, 1.1rem);
 	line-height: 1;
 	letter-spacing: 0.02em;
 }
@@ -80,9 +88,10 @@ body {
 	border: 1px solid rgba(148, 163, 184, 0.5);
 	background: rgba(255, 255, 255, 0.92);
 	border-radius: 10px;
-	font-size: 0.84rem;
+	font-size: clamp(0.84rem, 1.9vw, 0.9rem);
 	font-weight: 700;
-	padding: 8px 10px;
+	padding: 10px 12px;
+	min-height: var(--touch-target);
 	font-family: inherit;
 	color: var(--ink);
 }
@@ -96,6 +105,15 @@ body {
 	transform: translateY(-1px);
 	border-color: rgba(249, 115, 22, 0.45);
 	box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.control-panel button:focus-visible,
+.control-panel select:focus-visible,
+.viewport-hud button:focus-visible,
+.mobile-quick-controls button:focus-visible,
+.panel-mobile-toggle:focus-visible {
+	outline: 2px solid rgba(249, 115, 22, 0.65);
+	outline-offset: 2px;
 }
 
 .button-row {
@@ -261,6 +279,10 @@ body {
 	opacity: 1;
 }
 
+.mobile-quick-controls {
+	display: none;
+}
+
 .viewport-hud {
 	position: absolute;
 	left: 50%;
@@ -286,8 +308,8 @@ body {
 	font-size: 1rem;
 	line-height: 1;
 	border-radius: 999px;
-	height: 34px;
-	min-width: 34px;
+	height: var(--touch-target);
+	min-width: var(--touch-target);
 	padding: 0 10px;
 	cursor: pointer;
 }
@@ -301,17 +323,146 @@ body {
 	font-size: 0.9rem;
 	font-family: "Nunito", sans-serif;
 	font-weight: 900;
-	min-width: 84px;
+	min-width: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dog-bob {
+		animation: none;
+	}
+
+	.control-panel button,
+	.toy-instance,
+	.drag-overlay {
+		transition: none;
+	}
 }
 
 @media (max-width: 920px) {
 	#app-shell {
-		grid-template-columns: 1fr;
-		grid-template-rows: auto minmax(0, 1fr);
+		display: block;
+		height: 100dvh;
+		padding: 0;
 	}
 
 	.control-panel {
+		position: fixed;
+		left: calc(10px + var(--mobile-side-gap));
+		right: calc(10px + var(--mobile-side-gap));
+		bottom: var(--mobile-bottom-gap);
+		z-index: 140;
+		max-height: min(56dvh, 420px);
+		overflow: auto;
 		padding: 12px;
-		border-radius: 14px;
+		border-radius: 16px;
+		gap: 8px;
+		transform: translateY(calc(100% - var(--mobile-panel-peek)));
+		transition: transform 180ms ease-out;
+	}
+
+	body.mobile-ui-open .control-panel {
+		transform: translateY(0);
+	}
+
+	.panel-mobile-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+	}
+
+	.panel-mobile-toggle {
+		font-size: 0.82rem;
+		font-weight: 800;
+		min-height: var(--touch-target);
+		border-radius: 999px;
+		padding: 0 14px;
+	}
+
+	.panel-mobile-label {
+		font-size: 0.72rem;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		color: var(--ink-muted);
+		text-transform: uppercase;
+	}
+
+	#viewport {
+		height: 100dvh;
+		border-radius: 0;
+		border: none;
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+	}
+
+	.mobile-quick-controls {
+		position: absolute;
+		top: calc(env(safe-area-inset-top, 0px) + 12px);
+		right: calc(env(safe-area-inset-right, 0px) + 12px);
+		display: grid;
+		gap: 8px;
+		z-index: 95;
+	}
+
+	.mobile-quick-controls button {
+		min-height: var(--touch-target);
+		min-width: 106px;
+		border-radius: 999px;
+		padding: 0 14px;
+		border: 1px solid rgba(148, 163, 184, 0.42);
+		background: rgba(255, 255, 255, 0.93);
+		backdrop-filter: blur(8px);
+		font-family: "Changa", sans-serif;
+		font-size: 0.92rem;
+		font-weight: 700;
+		color: var(--ink);
+	}
+
+	body.mobile-ui-open .mobile-quick-controls button:last-child {
+		border-color: rgba(249, 115, 22, 0.52);
+		background: #fff7ed;
+	}
+
+	.viewport-hud {
+		left: 50%;
+		right: auto;
+		bottom: calc(var(--mobile-bottom-gap) + var(--mobile-panel-peek) + 8px);
+		padding: 6px;
+		gap: 6px;
+	}
+
+	.viewport-hud button {
+		font-size: 1.05rem;
+		padding: 0 12px;
+	}
+
+	#zoom-reset {
+		min-width: 88px;
+	}
+}
+
+@media (max-width: 540px) {
+	.control-panel {
+		left: calc(8px + var(--mobile-side-gap));
+		right: calc(8px + var(--mobile-side-gap));
+		max-height: min(62dvh, 440px);
+	}
+
+	.control-panel h1 {
+		font-size: 1rem;
+	}
+
+	.subtitle,
+	.hint,
+	.control-panel label {
+		font-size: 0.7rem;
+	}
+
+	.mobile-quick-controls button {
+		min-width: 100px;
+		font-size: 0.86rem;
+	}
+
+	.viewport-hud {
+		transform: translateX(-50%) scale(0.95);
 	}
 }

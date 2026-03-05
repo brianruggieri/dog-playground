@@ -12,6 +12,18 @@
 	<body>
 		<div id="app-shell">
 			<aside id="control-panel" class="control-panel">
+				<div class="panel-mobile-head">
+					<button
+						id="mobile-panel-toggle"
+						class="panel-mobile-toggle"
+						type="button"
+						aria-controls="control-panel"
+						aria-expanded="false"
+					>
+						Open Controls
+					</button>
+					<span class="panel-mobile-label">UI tray</span>
+				</div>
 				<h1>Dog Yard</h1>
 				<p class="subtitle">Wander + throw loop</p>
 				<label>
@@ -58,6 +70,21 @@
 					</defs>
 					<line id="drag-line" stroke="url(#drag-gradient)" stroke-width="3" stroke-linecap="round"></line>
 				</svg>
+
+				<div class="mobile-quick-controls">
+					<button id="mobile-throw-toggle" type="button" aria-label="Toggle throw mode">
+						Throw: On
+					</button>
+					<button
+						id="mobile-controls-fab"
+						type="button"
+						aria-controls="control-panel"
+						aria-expanded="false"
+						aria-label="Open controls tray"
+					>
+						Show UI
+					</button>
+				</div>
 
 				<div class="viewport-hud">
 					<button id="zoom-out" type="button" aria-label="Zoom out">-</button>

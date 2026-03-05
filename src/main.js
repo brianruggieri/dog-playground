@@ -51,10 +51,14 @@ const fallbackBackgrounds = [
 ];
 
 const el = {
+	controlPanel: document.getElementById("control-panel"),
 	viewport: document.getElementById("viewport"),
 	world: document.getElementById("world"),
 	dogSprite: document.getElementById("dog-sprite"),
 	dogImage: document.getElementById("dog-image"),
+	mobilePanelToggle: document.getElementById("mobile-panel-toggle"),
+	mobileControlsFab: document.getElementById("mobile-controls-fab"),
+	mobileThrowToggle: document.getElementById("mobile-throw-toggle"),
 	textureSelect: document.getElementById("texture-select"),
 	dogSelect: document.getElementById("dog-select"),
 	toySelect: document.getElementById("toy-select"),
@@ -94,12 +98,15 @@ const state = {
 	dragCurrentClient: null,
 	toys: [],
 	toyCounter: 0,
+	mobilePanelOpen: false,
+	isMobileLayout: false,
 	dog: createInitialDogState(GRID_PIXEL_SIZE),
 };
 
 let backgroundRequestToken = 0;
 let frameLastTime = performance.now();
 const activePointers = new Map();
+const mobileLayoutMedia = window.matchMedia("(max-width: 920px)");
 
 el.world.style.width = `${GRID_PIXEL_SIZE}px`;
 el.world.style.height = `${GRID_PIXEL_SIZE}px`;
@@ -121,6 +128,15 @@ function getViewportRect() {
 	return el.viewport.getBoundingClientRect();
 }
 
+function isViewportHudControlTarget(target) {
+	if (!(target instanceof Element)) {
+		return false;
+	}
+	return Boolean(
+		target.closest(".viewport-hud button") ||
+		target.closest(".mobile-quick-controls button"),
+	);
+}
 function getCenteredPan(zoomValue) {
 	const rect = getViewportRect();
 	const scaledWidth = GRID_PIXEL_SIZE * zoomValue;
@@ -205,9 +221,40 @@ function zoomByDelta(delta) {
 	zoomAroundVisibleGridCenter(nextZoom, previousZoom);
 }
 
+function updateThrowButtons() {
+	el.toggleThrow.textContent = `Throw Mode: ${state.throwMode ? "On" : "Off"}`;
+	el.mobileThrowToggle.textContent = `Throw: ${state.throwMode ? "On" : "Off"}`;
+}
+
+function setMobilePanelOpen(nextOpen) {
+	if (!state.isMobileLayout) {
+		state.mobilePanelOpen = false;
+		document.body.classList.remove("mobile-ui-open");
+		el.mobilePanelToggle.setAttribute("aria-expanded", "false");
+		el.mobileControlsFab.setAttribute("aria-expanded", "false");
+		el.mobilePanelToggle.textContent = "Open Controls";
+		el.mobileControlsFab.textContent = "Show UI";
+		return;
+	}
+
+	state.mobilePanelOpen = nextOpen;
+	document.body.classList.toggle("mobile-ui-open", nextOpen);
+	const expanded = nextOpen ? "true" : "false";
+	el.mobilePanelToggle.setAttribute("aria-expanded", expanded);
+	el.mobileControlsFab.setAttribute("aria-expanded", expanded);
+	el.mobilePanelToggle.textContent = nextOpen ? "Close Controls" : "Open Controls";
+	el.mobileControlsFab.textContent = nextOpen ? "Hide UI" : "Show UI";
+}
+
+function syncMobileLayout(isMobileLayout) {
+	state.isMobileLayout = isMobileLayout;
+	document.body.classList.toggle("mobile-layout", isMobileLayout);
+	setMobilePanelOpen(false);
+}
+
 function setThrowMode(nextMode) {
 	state.throwMode = nextMode;
-	el.toggleThrow.textContent = `Throw Mode: ${nextMode ? "On" : "Off"}`;
+	updateThrowButtons();
 	el.viewport.classList.toggle("throw-mode", nextMode);
 	if (!nextMode) {
 		endToyDrag(false);
@@ -590,12 +637,27 @@ function stepDog(dtMs) {
 function animationFrame(now) {
 	const dtMs = Math.min(48, now - frameLastTime);
 	frameLastTime = now;
-	stepToys(dtMs / 1000);
-	stepDog(dtMs);
+	stepSimulation(dtMs);
 	requestAnimationFrame(animationFrame);
 }
 
+function stepSimulation(dtMs) {
+	stepToys(dtMs / 1000);
+	stepDog(dtMs);
+}
+
 function handlePointerDown(event) {
+	if (isViewportHudControlTarget(event.target)) {
+		return;
+	}
+	if (
+		state.isMobileLayout &&
+		state.mobilePanelOpen &&
+		event.target instanceof Element &&
+		!el.controlPanel.contains(event.target)
+	) {
+		setMobilePanelOpen(false);
+	}
 	const point = { x: event.clientX, y: event.clientY };
 	activePointers.set(event.pointerId, {
 		x: point.x,
@@ -756,6 +818,10 @@ function handleKeyDown(event) {
 	}
 	if (event.key === "Escape") {
 		endToyDrag(false);
+		setMobilePanelOpen(false);
+	}
+	if ((event.key === "m" || event.key === "M") && !isInput) {
+		setMobilePanelOpen(!state.mobilePanelOpen);
 	}
 }
 
@@ -791,6 +857,14 @@ function wireControls() {
 	el.toggleThrow.addEventListener("click", () => {
 		setThrowMode(!state.throwMode);
 	});
+	el.mobileThrowToggle.addEventListener("click", () => {
+		setThrowMode(!state.throwMode);
+	});
+	const toggleMobilePanel = () => {
+		setMobilePanelOpen(!state.mobilePanelOpen);
+	};
+	el.mobilePanelToggle.addEventListener("click", toggleMobilePanel);
+	el.mobileControlsFab.addEventListener("click", toggleMobilePanel);
 
 	el.centerView.addEventListener("click", () => {
 		centerCanvas(state.zoom);
@@ -821,6 +895,61 @@ function wireViewportEvents() {
 	window.addEventListener("keydown", handleKeyDown);
 	window.addEventListener("keyup", handleKeyUp);
 	window.addEventListener("resize", handleResize);
+	const handleMobileMediaChange = (event) => {
+		syncMobileLayout(event.matches);
+		centerCanvas(state.zoom);
+	};
+	if (typeof mobileLayoutMedia.addEventListener === "function") {
+		mobileLayoutMedia.addEventListener("change", handleMobileMediaChange);
+	} else if (typeof mobileLayoutMedia.addListener === "function") {
+		mobileLayoutMedia.addListener(handleMobileMediaChange);
+	}
+}
+
+function roundTo2(value) {
+	return Math.round(value * 100) / 100;
+}
+
+function renderGameToText() {
+	const payload = {
+		coordinateSystem: {
+			origin: "top-left",
+			axes: "+x right, +y down",
+			worldSizePx: GRID_PIXEL_SIZE,
+		},
+		camera: {
+			zoom: roundTo2(state.zoom),
+			panX: roundTo2(state.pan.x),
+			panY: roundTo2(state.pan.y),
+		},
+		dog: {
+			x: roundTo2(state.dog.x),
+			y: roundTo2(state.dog.y),
+			flip: state.dog.flip,
+			frame: state.dog.frameIndex,
+		},
+		toys: state.toys.map((toyState) => ({
+			id: toyState.id,
+			x: roundTo2(toyState.x),
+			y: roundTo2(toyState.y),
+			vx: roundTo2(toyState.vx),
+			vy: roundTo2(toyState.vy),
+		})),
+		throwMode: state.throwMode,
+		mobilePanelOpen: state.mobilePanelOpen,
+	};
+	return JSON.stringify(payload);
+}
+
+function exposeTestHooks() {
+	window.render_game_to_text = renderGameToText;
+	window.advanceTime = (ms) => {
+		const frameMs = 1000 / 60;
+		const steps = Math.max(1, Math.round(ms / frameMs));
+		for (let i = 0; i < steps; i += 1) {
+			stepSimulation(frameMs);
+		}
+	};
 }
 
 async function initBackgroundSelect() {
@@ -834,10 +963,12 @@ async function initBackgroundSelect() {
 async function init() {
 	wireControls();
 	wireViewportEvents();
+	syncMobileLayout(mobileLayoutMedia.matches);
 	setThrowMode(true);
 	centerCanvas(1);
 	await initBackgroundSelect();
 	renderDog();
+	exposeTestHooks();
 	requestAnimationFrame(animationFrame);
 }
 
