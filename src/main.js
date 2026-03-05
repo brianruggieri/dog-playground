@@ -51,12 +51,22 @@ const fallbackBackgrounds = [
 ];
 
 const el = {
+	controlPanel: document.getElementById("control-panel"),
 	viewport: document.getElementById("viewport"),
 	world: document.getElementById("world"),
 	dogSprite: document.getElementById("dog-sprite"),
 	dogImage: document.getElementById("dog-image"),
+	mobilePanelToggle: document.getElementById("mobile-panel-toggle"),
+	mobileControlsFab: document.getElementById("mobile-controls-fab"),
+	mobileThrowToggle: document.getElementById("mobile-throw-toggle"),
+	backgroundPicker: document.getElementById("background-picker"),
+	backgroundLabel: document.getElementById("background-label"),
 	textureSelect: document.getElementById("texture-select"),
+	dogPicker: document.getElementById("dog-picker"),
+	dogLabel: document.getElementById("dog-label"),
 	dogSelect: document.getElementById("dog-select"),
+	toyPicker: document.getElementById("toy-picker"),
+	toyLabel: document.getElementById("toy-label"),
 	toySelect: document.getElementById("toy-select"),
 	toggleThrow: document.getElementById("toggle-throw"),
 	centerView: document.getElementById("center-view"),
@@ -94,12 +104,15 @@ const state = {
 	dragCurrentClient: null,
 	toys: [],
 	toyCounter: 0,
+	mobilePanelOpen: false,
+	isMobileLayout: false,
 	dog: createInitialDogState(GRID_PIXEL_SIZE),
 };
 
 let backgroundRequestToken = 0;
 let frameLastTime = performance.now();
 const activePointers = new Map();
+const mobileLayoutMedia = window.matchMedia("(max-width: 920px)");
 
 el.world.style.width = `${GRID_PIXEL_SIZE}px`;
 el.world.style.height = `${GRID_PIXEL_SIZE}px`;
@@ -117,10 +130,111 @@ function setSelectOptions(select, options, selectedId) {
 	}
 }
 
+function updatePickerLabel(labelElement, options, selectedId, fallback = "") {
+	if (!labelElement) {
+		return;
+	}
+	const selected = options.find((option) => option.id === selectedId);
+	labelElement.textContent = selected?.name || fallback || selectedId || "";
+}
+
+function updatePickerSelection(container, selectedId) {
+	if (!container) {
+		return;
+	}
+	for (const button of container.querySelectorAll("button[data-value]")) {
+		const isSelected = button.dataset.value === selectedId;
+		button.classList.toggle("is-selected", isSelected);
+		button.setAttribute("aria-checked", isSelected ? "true" : "false");
+	}
+}
+
+function createPickerCard(option, selectedId, config) {
+	const button = document.createElement("button");
+	button.type = "button";
+	button.className = "picker-card";
+	button.dataset.value = option.id;
+	const isSelected = option.id === selectedId;
+	button.classList.toggle("is-selected", isSelected);
+	button.setAttribute("role", "radio");
+	button.setAttribute("aria-checked", isSelected ? "true" : "false");
+	button.setAttribute("aria-label", option.name);
+
+	const thumb = document.createElement("div");
+	thumb.className = `picker-thumb picker-thumb--${config.kind}`;
+
+	if (config.kind === "background") {
+		if (option.url) {
+			setElementBackgroundImageWithFallback(thumb, option.url, option.backupUrl);
+		} else {
+			thumb.classList.add("is-none");
+		}
+	}
+
+	if (config.kind === "dog") {
+		const frame = option.frames?.[0] || "";
+		const backupFrame = option.backupFrames?.[0] || "";
+		if (frame) {
+			setElementBackgroundImageWithFallback(thumb, frame, backupFrame);
+		} else {
+			thumb.classList.add("is-none");
+		}
+	}
+
+	if (config.kind === "toy") {
+		if (option.assetUrl) {
+			setElementBackgroundImageWithFallback(
+				thumb,
+				option.assetUrl,
+				option.backupAssetUrl,
+			);
+		} else {
+			thumb.classList.add("is-none");
+		}
+	}
+
+	const label = document.createElement("div");
+	label.className = "picker-text";
+	label.textContent = option.name;
+
+	button.appendChild(thumb);
+	button.appendChild(label);
+
+	if (config.showDescription && option.description) {
+		const meta = document.createElement("div");
+		meta.className = "picker-meta";
+		meta.textContent = option.description;
+		button.appendChild(meta);
+	}
+
+	return button;
+}
+
+function renderPicker(container, options, selectedId, config) {
+	if (!container) {
+		return;
+	}
+	container.innerHTML = "";
+	const fragment = document.createDocumentFragment();
+	for (const option of options) {
+		fragment.appendChild(createPickerCard(option, selectedId, config));
+	}
+	container.appendChild(fragment);
+}
+
 function getViewportRect() {
 	return el.viewport.getBoundingClientRect();
 }
 
+function isViewportHudControlTarget(target) {
+	if (!(target instanceof Element)) {
+		return false;
+	}
+	return Boolean(
+		target.closest(".viewport-hud button") ||
+		target.closest(".mobile-quick-controls button"),
+	);
+}
 function getCenteredPan(zoomValue) {
 	const rect = getViewportRect();
 	const scaledWidth = GRID_PIXEL_SIZE * zoomValue;
@@ -205,9 +319,42 @@ function zoomByDelta(delta) {
 	zoomAroundVisibleGridCenter(nextZoom, previousZoom);
 }
 
+function updateThrowButtons() {
+	el.toggleThrow.textContent = `Throw Mode: ${state.throwMode ? "On" : "Off"}`;
+	el.mobileThrowToggle.textContent = `Throw: ${state.throwMode ? "On" : "Off"}`;
+	el.toggleThrow.classList.toggle("is-on", state.throwMode);
+	el.mobileThrowToggle.classList.toggle("is-on", state.throwMode);
+}
+
+function setMobilePanelOpen(nextOpen) {
+	if (!state.isMobileLayout) {
+		state.mobilePanelOpen = false;
+		document.body.classList.remove("mobile-ui-open");
+		el.mobilePanelToggle.setAttribute("aria-expanded", "false");
+		el.mobileControlsFab.setAttribute("aria-expanded", "false");
+		el.mobilePanelToggle.textContent = "Open Controls";
+		el.mobileControlsFab.textContent = "Show UI";
+		return;
+	}
+
+	state.mobilePanelOpen = nextOpen;
+	document.body.classList.toggle("mobile-ui-open", nextOpen);
+	const expanded = nextOpen ? "true" : "false";
+	el.mobilePanelToggle.setAttribute("aria-expanded", expanded);
+	el.mobileControlsFab.setAttribute("aria-expanded", expanded);
+	el.mobilePanelToggle.textContent = nextOpen ? "Close Controls" : "Open Controls";
+	el.mobileControlsFab.textContent = nextOpen ? "Hide UI" : "Show UI";
+}
+
+function syncMobileLayout(isMobileLayout) {
+	state.isMobileLayout = isMobileLayout;
+	document.body.classList.toggle("mobile-layout", isMobileLayout);
+	setMobilePanelOpen(false);
+}
+
 function setThrowMode(nextMode) {
 	state.throwMode = nextMode;
-	el.toggleThrow.textContent = `Throw Mode: ${nextMode ? "On" : "Off"}`;
+	updateThrowButtons();
 	el.viewport.classList.toggle("throw-mode", nextMode);
 	if (!nextMode) {
 		endToyDrag(false);
@@ -590,12 +737,27 @@ function stepDog(dtMs) {
 function animationFrame(now) {
 	const dtMs = Math.min(48, now - frameLastTime);
 	frameLastTime = now;
-	stepToys(dtMs / 1000);
-	stepDog(dtMs);
+	stepSimulation(dtMs);
 	requestAnimationFrame(animationFrame);
 }
 
+function stepSimulation(dtMs) {
+	stepToys(dtMs / 1000);
+	stepDog(dtMs);
+}
+
 function handlePointerDown(event) {
+	if (isViewportHudControlTarget(event.target)) {
+		return;
+	}
+	if (
+		state.isMobileLayout &&
+		state.mobilePanelOpen &&
+		event.target instanceof Element &&
+		!el.controlPanel.contains(event.target)
+	) {
+		setMobilePanelOpen(false);
+	}
 	const point = { x: event.clientX, y: event.clientY };
 	activePointers.set(event.pointerId, {
 		x: point.x,
@@ -721,6 +883,10 @@ function handlePointerCancel(event) {
 }
 
 function handleWheel(event) {
+	if (isViewportHudControlTarget(event.target)) {
+		return;
+	}
+
 	if (event.ctrlKey || event.metaKey) {
 		event.preventDefault();
 		const delta = -event.deltaY;
@@ -756,6 +922,10 @@ function handleKeyDown(event) {
 	}
 	if (event.key === "Escape") {
 		endToyDrag(false);
+		setMobilePanelOpen(false);
+	}
+	if ((event.key === "m" || event.key === "M") && !isInput) {
+		setMobilePanelOpen(!state.mobilePanelOpen);
 	}
 }
 
@@ -771,26 +941,104 @@ function handleResize() {
 }
 
 function wireControls() {
-	setSelectOptions(el.dogSelect, getDogOptions(), state.selectedDogId);
-	setSelectOptions(el.toySelect, getToyOptions(), state.selectedToyId);
+	const dogOptions = getDogOptions();
+	const toyOptions = getToyOptions();
+	setSelectOptions(el.dogSelect, dogOptions, state.selectedDogId);
+	setSelectOptions(el.toySelect, toyOptions, state.selectedToyId);
+	renderPicker(el.dogPicker, dogOptions, state.selectedDogId, {
+		kind: "dog",
+		showDescription: true,
+	});
+	renderPicker(el.toyPicker, toyOptions, state.selectedToyId, { kind: "toy" });
+	updatePickerLabel(el.dogLabel, dogOptions, state.selectedDogId, "Dog");
+	updatePickerLabel(el.toyLabel, toyOptions, state.selectedToyId, "Toy");
+
+	el.dogPicker.addEventListener("click", (event) => {
+		const target = event.target instanceof Element ? event.target : null;
+		const button = target?.closest("button[data-value]");
+		if (!button || !el.dogPicker.contains(button)) {
+			return;
+		}
+		const selectedId = button.dataset.value || "";
+		if (!selectedId || selectedId === state.selectedDogId) {
+			return;
+		}
+		state.selectedDogId = selectedId;
+		el.dogSelect.value = selectedId;
+		updatePickerSelection(el.dogPicker, selectedId);
+		updatePickerLabel(el.dogLabel, dogOptions, selectedId, "Dog");
+	});
+
+	el.toyPicker.addEventListener("click", (event) => {
+		const target = event.target instanceof Element ? event.target : null;
+		const button = target?.closest("button[data-value]");
+		if (!button || !el.toyPicker.contains(button)) {
+			return;
+		}
+		const selectedId = button.dataset.value || "";
+		if (!selectedId || selectedId === state.selectedToyId) {
+			return;
+		}
+		state.selectedToyId = selectedId;
+		el.toySelect.value = selectedId;
+		updatePickerSelection(el.toyPicker, selectedId);
+		updatePickerLabel(el.toyLabel, toyOptions, selectedId, "Toy");
+		updateDragArtifacts();
+	});
+
+	el.backgroundPicker.addEventListener("click", (event) => {
+		const target = event.target instanceof Element ? event.target : null;
+		const button = target?.closest("button[data-value]");
+		if (!button || !el.backgroundPicker.contains(button)) {
+			return;
+		}
+		const selectedId = button.dataset.value || "";
+		if (!selectedId || selectedId === state.backgroundId) {
+			return;
+		}
+		state.backgroundId = selectedId;
+		el.textureSelect.value = selectedId;
+		updatePickerSelection(el.backgroundPicker, selectedId);
+		updatePickerLabel(el.backgroundLabel, state.backgrounds, selectedId, "Background");
+		refreshBackground();
+	});
 
 	el.dogSelect.addEventListener("change", () => {
 		state.selectedDogId = el.dogSelect.value;
+		updatePickerSelection(el.dogPicker, state.selectedDogId);
+		updatePickerLabel(el.dogLabel, dogOptions, state.selectedDogId, "Dog");
 	});
 
 	el.toySelect.addEventListener("change", () => {
 		state.selectedToyId = el.toySelect.value;
+		updatePickerSelection(el.toyPicker, state.selectedToyId);
+		updatePickerLabel(el.toyLabel, toyOptions, state.selectedToyId, "Toy");
 		updateDragArtifacts();
 	});
 
 	el.textureSelect.addEventListener("change", () => {
 		state.backgroundId = el.textureSelect.value;
+		updatePickerSelection(el.backgroundPicker, state.backgroundId);
+		updatePickerLabel(
+			el.backgroundLabel,
+			state.backgrounds,
+			state.backgroundId,
+			"Background",
+		);
 		refreshBackground();
 	});
 
 	el.toggleThrow.addEventListener("click", () => {
 		setThrowMode(!state.throwMode);
 	});
+	el.mobileThrowToggle.addEventListener("click", () => {
+		setThrowMode(!state.throwMode);
+	});
+	const toggleMobilePanel = () => {
+		setMobilePanelOpen(!state.mobilePanelOpen);
+	};
+	el.mobilePanelToggle.addEventListener("click", toggleMobilePanel);
+	el.mobileControlsFab.addEventListener("click", toggleMobilePanel);
 
 	el.centerView.addEventListener("click", () => {
 		centerCanvas(state.zoom);
@@ -821,6 +1069,61 @@ function wireViewportEvents() {
 	window.addEventListener("keydown", handleKeyDown);
 	window.addEventListener("keyup", handleKeyUp);
 	window.addEventListener("resize", handleResize);
+	const handleMobileMediaChange = (event) => {
+		syncMobileLayout(event.matches);
+		centerCanvas(state.zoom);
+	};
+	if (typeof mobileLayoutMedia.addEventListener === "function") {
+		mobileLayoutMedia.addEventListener("change", handleMobileMediaChange);
+	} else if (typeof mobileLayoutMedia.addListener === "function") {
+		mobileLayoutMedia.addListener(handleMobileMediaChange);
+	}
+}
+
+function roundTo2(value) {
+	return Math.round(value * 100) / 100;
+}
+
+function renderGameToText() {
+	const payload = {
+		coordinateSystem: {
+			origin: "top-left",
+			axes: "+x right, +y down",
+			worldSizePx: GRID_PIXEL_SIZE,
+		},
+		camera: {
+			zoom: roundTo2(state.zoom),
+			panX: roundTo2(state.pan.x),
+			panY: roundTo2(state.pan.y),
+		},
+		dog: {
+			x: roundTo2(state.dog.x),
+			y: roundTo2(state.dog.y),
+			flip: state.dog.flip,
+			frame: state.dog.frameIndex,
+		},
+		toys: state.toys.map((toyState) => ({
+			id: toyState.id,
+			x: roundTo2(toyState.x),
+			y: roundTo2(toyState.y),
+			vx: roundTo2(toyState.vx),
+			vy: roundTo2(toyState.vy),
+		})),
+		throwMode: state.throwMode,
+		mobilePanelOpen: state.mobilePanelOpen,
+	};
+	return JSON.stringify(payload);
+}
+
+function exposeTestHooks() {
+	window.render_game_to_text = renderGameToText;
+	window.advanceTime = (ms) => {
+		const frameMs = 1000 / 60;
+		const steps = Math.max(1, Math.round(ms / frameMs));
+		for (let i = 0; i < steps; i += 1) {
+			stepSimulation(frameMs);
+		}
+	};
 }
 
 async function initBackgroundSelect() {
@@ -828,16 +1131,22 @@ async function initBackgroundSelect() {
 	const hasGrass = state.backgrounds.some((background) => background.id === "grass");
 	state.backgroundId = hasGrass ? "grass" : state.backgrounds[0]?.id || "none";
 	setSelectOptions(el.textureSelect, state.backgrounds, state.backgroundId);
+	renderPicker(el.backgroundPicker, state.backgrounds, state.backgroundId, {
+		kind: "background",
+	});
+	updatePickerLabel(el.backgroundLabel, state.backgrounds, state.backgroundId, "Background");
 	await refreshBackground();
 }
 
 async function init() {
 	wireControls();
 	wireViewportEvents();
+	syncMobileLayout(mobileLayoutMedia.matches);
 	setThrowMode(true);
 	centerCanvas(1);
 	await initBackgroundSelect();
 	renderDog();
+	exposeTestHooks();
 	requestAnimationFrame(animationFrame);
 }
 

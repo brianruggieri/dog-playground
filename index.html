@@ -12,20 +12,53 @@
 	<body>
 		<div id="app-shell">
 			<aside id="control-panel" class="control-panel">
+				<div class="panel-mobile-head">
+					<button
+						id="mobile-panel-toggle"
+						class="panel-mobile-toggle"
+						type="button"
+						aria-controls="control-panel"
+						aria-expanded="false"
+					>
+						Open Controls
+					</button>
+					<span class="panel-mobile-label">UI tray</span>
+				</div>
 				<h1>Dog Yard</h1>
-				<p class="subtitle">Wander + throw loop</p>
-				<label>
-					<span>Texture</span>
-					<select id="texture-select"></select>
-				</label>
-				<label>
-					<span>Dog</span>
-					<select id="dog-select"></select>
-				</label>
-				<label>
-					<span>Toy</span>
-					<select id="toy-select"></select>
-				</label>
+				<p class="subtitle">Pick a yard, pup, and toy</p>
+				<section class="picker">
+					<div class="picker-header">
+						<span class="picker-title">Background</span>
+						<span id="background-label" class="picker-current">Grass</span>
+					</div>
+					<div id="background-picker" class="picker-grid" role="radiogroup" aria-label="Background"></div>
+					<label class="sr-only">
+						<span>Texture</span>
+						<select id="texture-select"></select>
+					</label>
+				</section>
+				<section class="picker">
+					<div class="picker-header">
+						<span class="picker-title">Dog</span>
+						<span id="dog-label" class="picker-current">Farm Collie</span>
+					</div>
+					<div id="dog-picker" class="picker-grid" role="radiogroup" aria-label="Dog"></div>
+					<label class="sr-only">
+						<span>Dog</span>
+						<select id="dog-select"></select>
+					</label>
+				</section>
+				<section class="picker">
+					<div class="picker-header">
+						<span class="picker-title">Toy</span>
+						<span id="toy-label" class="picker-current">Ball</span>
+					</div>
+					<div id="toy-picker" class="picker-grid" role="radiogroup" aria-label="Toy"></div>
+					<label class="sr-only">
+						<span>Toy</span>
+						<select id="toy-select"></select>
+					</label>
+				</section>
 				<div class="button-row">
 					<button id="toggle-throw" type="button">Throw Mode: On</button>
 					<button id="center-view" type="button">Center View</button>
@@ -58,6 +91,21 @@
 					</defs>
 					<line id="drag-line" stroke="url(#drag-gradient)" stroke-width="3" stroke-linecap="round"></line>
 				</svg>
+
+				<div class="mobile-quick-controls">
+					<button id="mobile-throw-toggle" type="button" aria-label="Toggle throw mode">
+						Throw: On
+					</button>
+					<button
+						id="mobile-controls-fab"
+						type="button"
+						aria-controls="control-panel"
+						aria-expanded="false"
+						aria-label="Open controls tray"
+					>
+						Show UI
+					</button>
+				</div>
 
 				<div class="viewport-hud">
 					<button id="zoom-out" type="button" aria-label="Zoom out">-</button>
