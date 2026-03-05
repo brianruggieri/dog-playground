@@ -121,6 +121,13 @@ function getViewportRect() {
 	return el.viewport.getBoundingClientRect();
 }
 
+function isViewportHudControlTarget(target) {
+	if (!(target instanceof Element)) {
+		return false;
+	}
+	return Boolean(target.closest(".viewport-hud button"));
+}
+
 function getCenteredPan(zoomValue) {
 	const rect = getViewportRect();
 	const scaledWidth = GRID_PIXEL_SIZE * zoomValue;
@@ -596,6 +603,10 @@ function animationFrame(now) {
 }
 
 function handlePointerDown(event) {
+	if (isViewportHudControlTarget(event.target)) {
+		return;
+	}
+
 	const point = { x: event.clientX, y: event.clientY };
 	activePointers.set(event.pointerId, {
 		x: point.x,
@@ -721,6 +732,10 @@ function handlePointerCancel(event) {
 }
 
 function handleWheel(event) {
+	if (isViewportHudControlTarget(event.target)) {
+		return;
+	}
+
 	if (event.ctrlKey || event.metaKey) {
 		event.preventDefault();
 		const delta = -event.deltaY;
