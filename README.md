@@ -1,5 +1,7 @@
 # Dog Playground
 
+![Dog Playground hero](public/readme/hero.png)
+
 A standalone extraction of the GardenCraft dog wander + throw-toy interaction.
 
 ## Scope
@@ -13,6 +15,19 @@ This project intentionally keeps only:
 - Small control panel.
 
 Everything unrelated to this interaction (garden beds, plants, AI providers, layout generation) is removed.
+
+## Screenshots
+
+Desktop drag line (sand + frisbee):
+![Throwing a frisbee with the drag line visible](public/readme/drag-frisbee.png)
+
+Bone chase (tile + bone):
+![Bone throw in motion](public/readme/throw-bone.png)
+
+### Mobile
+
+Touch drag (dirt + ball):
+![Mobile drag-to-throw](public/readme/mobile-drag.png)
 
 ## Architecture
 
@@ -58,6 +73,17 @@ Add or register new entries with image + launch/physics profiles in `src/catalog
 	2. Run `npm run assets:manifest`.
 	3. Run `npm run assets:check`.
 - CI enforces this via the `Asset Compliance` workflow.
+
+## Hero Image
+
+The README hero is generated from `public/readme/hero.template.html` + `public/readme/hero.config.json`.
+
+Regenerate:
+
+```bash
+source ~/.nvm/nvm.sh && nvm use
+npm run hero:render
+```
 
 ## Future Expansion Notes
 
