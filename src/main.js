@@ -55,8 +55,14 @@ const el = {
 	world: document.getElementById("world"),
 	dogSprite: document.getElementById("dog-sprite"),
 	dogImage: document.getElementById("dog-image"),
+	backgroundPicker: document.getElementById("background-picker"),
+	backgroundLabel: document.getElementById("background-label"),
 	textureSelect: document.getElementById("texture-select"),
+	dogPicker: document.getElementById("dog-picker"),
+	dogLabel: document.getElementById("dog-label"),
 	dogSelect: document.getElementById("dog-select"),
+	toyPicker: document.getElementById("toy-picker"),
+	toyLabel: document.getElementById("toy-label"),
 	toySelect: document.getElementById("toy-select"),
 	toggleThrow: document.getElementById("toggle-throw"),
 	centerView: document.getElementById("center-view"),
@@ -115,6 +121,98 @@ function setSelectOptions(select, options, selectedId) {
 		}
 		select.appendChild(optionElement);
 	}
+}
+
+function updatePickerLabel(labelElement, options, selectedId, fallback = "") {
+	if (!labelElement) {
+		return;
+	}
+	const selected = options.find((option) => option.id === selectedId);
+	labelElement.textContent = selected?.name || fallback || selectedId || "";
+}
+
+function updatePickerSelection(container, selectedId) {
+	if (!container) {
+		return;
+	}
+	for (const button of container.querySelectorAll("button[data-value]")) {
+		const isSelected = button.dataset.value === selectedId;
+		button.classList.toggle("is-selected", isSelected);
+		button.setAttribute("aria-checked", isSelected ? "true" : "false");
+	}
+}
+
+function createPickerCard(option, selectedId, config) {
+	const button = document.createElement("button");
+	button.type = "button";
+	button.className = "picker-card";
+	button.dataset.value = option.id;
+	const isSelected = option.id === selectedId;
+	button.classList.toggle("is-selected", isSelected);
+	button.setAttribute("role", "radio");
+	button.setAttribute("aria-checked", isSelected ? "true" : "false");
+	button.setAttribute("aria-label", option.name);
+
+	const thumb = document.createElement("div");
+	thumb.className = `picker-thumb picker-thumb--${config.kind}`;
+
+	if (config.kind === "background") {
+		if (option.url) {
+			setElementBackgroundImageWithFallback(thumb, option.url, option.backupUrl);
+		} else {
+			thumb.classList.add("is-none");
+		}
+	}
+
+	if (config.kind === "dog") {
+		const frame = option.frames?.[0] || "";
+		const backupFrame = option.backupFrames?.[0] || "";
+		if (frame) {
+			setElementBackgroundImageWithFallback(thumb, frame, backupFrame);
+		} else {
+			thumb.classList.add("is-none");
+		}
+	}
+
+	if (config.kind === "toy") {
+		if (option.assetUrl) {
+			setElementBackgroundImageWithFallback(
+				thumb,
+				option.assetUrl,
+				option.backupAssetUrl,
+			);
+		} else {
+			thumb.classList.add("is-none");
+		}
+	}
+
+	const label = document.createElement("div");
+	label.className = "picker-text";
+	label.textContent = option.name;
+
+	button.appendChild(thumb);
+	button.appendChild(label);
+
+	if (config.showDescription && option.description) {
+		const meta = document.createElement("div");
+		meta.className = "picker-meta";
+		meta.textContent = option.description;
+		button.appendChild(meta);
+	}
+
+	return button;
+}
+
+function renderPicker(container, options, selectedId, config) {
+	if (!container) {
+		return;
+	}
+	container.innerHTML = "";
+	const fragment = document.createDocumentFragment();
+	for (const option of options) {
+		fragment.appendChild(createPickerCard(option, selectedId, config));
+	}
+	container.appendChild(fragment);
 }
 
 function getViewportRect() {
@@ -771,20 +869,90 @@ function handleResize() {
 }
 
 function wireControls() {
-	setSelectOptions(el.dogSelect, getDogOptions(), state.selectedDogId);
-	setSelectOptions(el.toySelect, getToyOptions(), state.selectedToyId);
+	const dogOptions = getDogOptions();
+	const toyOptions = getToyOptions();
+	setSelectOptions(el.dogSelect, dogOptions, state.selectedDogId);
+	setSelectOptions(el.toySelect, toyOptions, state.selectedToyId);
+	renderPicker(el.dogPicker, dogOptions, state.selectedDogId, {
+		kind: "dog",
+		showDescription: true,
+	});
+	renderPicker(el.toyPicker, toyOptions, state.selectedToyId, { kind: "toy" });
+	updatePickerLabel(el.dogLabel, dogOptions, state.selectedDogId, "Dog");
+	updatePickerLabel(el.toyLabel, toyOptions, state.selectedToyId, "Toy");
+
+	el.dogPicker.addEventListener("click", (event) => {
+		const target = event.target instanceof Element ? event.target : null;
+		const button = target?.closest("button[data-value]");
+		if (!button || !el.dogPicker.contains(button)) {
+			return;
+		}
+		const selectedId = button.dataset.value || "";
+		if (!selectedId || selectedId === state.selectedDogId) {
+			return;
+		}
+		state.selectedDogId = selectedId;
+		el.dogSelect.value = selectedId;
+		updatePickerSelection(el.dogPicker, selectedId);
+		updatePickerLabel(el.dogLabel, dogOptions, selectedId, "Dog");
+	});
+
+	el.toyPicker.addEventListener("click", (event) => {
+		const target = event.target instanceof Element ? event.target : null;
+		const button = target?.closest("button[data-value]");
+		if (!button || !el.toyPicker.contains(button)) {
+			return;
+		}
+		const selectedId = button.dataset.value || "";
+		if (!selectedId || selectedId === state.selectedToyId) {
+			return;
+		}
+		state.selectedToyId = selectedId;
+		el.toySelect.value = selectedId;
+		updatePickerSelection(el.toyPicker, selectedId);
+		updatePickerLabel(el.toyLabel, toyOptions, selectedId, "Toy");
+		updateDragArtifacts();
+	});
+
+	el.backgroundPicker.addEventListener("click", (event) => {
+		const target = event.target instanceof Element ? event.target : null;
+		const button = target?.closest("button[data-value]");
+		if (!button || !el.backgroundPicker.contains(button)) {
+			return;
+		}
+		const selectedId = button.dataset.value || "";
+		if (!selectedId || selectedId === state.backgroundId) {
+			return;
+		}
+		state.backgroundId = selectedId;
+		el.textureSelect.value = selectedId;
+		updatePickerSelection(el.backgroundPicker, selectedId);
+		updatePickerLabel(el.backgroundLabel, state.backgrounds, selectedId, "Background");
+		refreshBackground();
+	});
 
 	el.dogSelect.addEventListener("change", () => {
 		state.selectedDogId = el.dogSelect.value;
+		updatePickerSelection(el.dogPicker, state.selectedDogId);
+		updatePickerLabel(el.dogLabel, dogOptions, state.selectedDogId, "Dog");
 	});
 
 	el.toySelect.addEventListener("change", () => {
 		state.selectedToyId = el.toySelect.value;
+		updatePickerSelection(el.toyPicker, state.selectedToyId);
+		updatePickerLabel(el.toyLabel, toyOptions, state.selectedToyId, "Toy");
 		updateDragArtifacts();
 	});
 
 	el.textureSelect.addEventListener("change", () => {
 		state.backgroundId = el.textureSelect.value;
+		updatePickerSelection(el.backgroundPicker, state.backgroundId);
+		updatePickerLabel(
+			el.backgroundLabel,
+			state.backgrounds,
+			state.backgroundId,
+			"Background",
+		);
 		refreshBackground();
 	});
 
@@ -828,6 +996,10 @@ async function initBackgroundSelect() {
 	const hasGrass = state.backgrounds.some((background) => background.id === "grass");
 	state.backgroundId = hasGrass ? "grass" : state.backgrounds[0]?.id || "none";
 	setSelectOptions(el.textureSelect, state.backgrounds, state.backgroundId);
+	renderPicker(el.backgroundPicker, state.backgrounds, state.backgroundId, {
+		kind: "background",
+	});
+	updatePickerLabel(el.backgroundLabel, state.backgrounds, state.backgroundId, "Background");
 	await refreshBackground();
 }
 
