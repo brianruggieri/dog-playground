@@ -283,6 +283,18 @@ function centerCanvas(zoomValue = state.zoom) {
 	renderTransform();
 }
 
+function centerOnDog() {
+	const rect = getViewportRect();
+	state.pan = clampPan(
+		{
+			x: rect.width / 2 - state.dog.x * state.zoom,
+			y: rect.height / 2 - state.dog.y * state.zoom,
+		},
+		state.zoom,
+	);
+	renderTransform();
+}
+
 function zoomAroundVisibleGridCenter(nextZoom, previousZoom) {
 	const rect = getViewportRect();
 	const previousPan = state.pan;
@@ -1041,7 +1053,7 @@ function wireControls() {
 	el.mobileControlsFab.addEventListener("click", toggleMobilePanel);
 
 	el.centerView.addEventListener("click", () => {
-		centerCanvas(state.zoom);
+		centerOnDog();
 	});
 
 	el.zoomOut.addEventListener("click", () => zoomByDelta(-0.1));
