@@ -18,3 +18,7 @@ coverage/
 dist/
 .codex/
 .claude/
+.claude-flow/
+.playwright-cli/
+output/
+public/readme/hero.html

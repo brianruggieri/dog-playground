@@ -1,0 +1,10 @@
+{
+	"title": "Dog Playground",
+	"subtitle": "Throw toys, watch pups chase, and explore big backyard vibes.",
+	"badge": "Drag-to-Throw Physics",
+	"background": "public/backgrounds/grass-tile.png",
+	"dog": "public/dogs/dog-01.png",
+	"toy": "public/toys/frisbee.png",
+	"width": 1800,
+	"height": 600
+}
